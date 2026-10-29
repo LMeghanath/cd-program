@@ -1,30 +1,4 @@
-/*
- * SLR(1) Table-Driven (Shift-Reduce) Parser
- *
- * Grammar:
- *   1: S -> A B
- *   2: A -> a
- *   3: A -> epsilon
- *   4: B -> b
- *   5: B -> epsilon
- *
- * FOLLOW(S) = { $ }
- * FOLLOW(A) = { b, $ }
- * FOLLOW(B) = { $ }
- *
- * LR(0) states:
- *   I0: S'->.S  S->.AB  A->.a  A->.            (goto: S=1, A=2, a=3)
- *   I1: S'->S.                                  (accept)
- *   I2: S->A.B  B->.b  B->.                     (goto: B=4, b=5)
- *   I3: A->a.
- *   I4: S->AB.
- *   I5: B->b.
- *
- * Language accepted: "", "a", "b", "ab"
- *
- * Compile: gcc slr_parser_AB.c -o slr_parser_AB
- * Run:     ./slr_parser_AB     (press Enter on an empty line to test epsilon)
- */
+
 #include <stdio.h>
 #include <string.h>
 
@@ -35,10 +9,10 @@
 #define S(n) (n)          /* shift to state n   */
 #define R(n) (100 + (n))  /* reduce by prod n   */
 
-const char TERMS[]    = "ab$";   /* ACTION columns */
-const char NONTERMS[] = "SAB";   /* GOTO columns   */
+const char TERMS[]    = "ab$";  
+const char NONTERMS[] = "SAB";  
 
-/* Productions (index 0 unused). prod_len is 0 for epsilon productions. */
+
 const char  prod_lhs[] = { ' ', 'S',     'A',    'A',     'B',    'B'    };
 const int   prod_len[] = {  0,   2,       1,      0,       1,      0     };
 const char *prod_str[] = { "", "S->AB", "A->a", "A->e", "B->b", "B->e" };
@@ -114,15 +88,15 @@ int parse(const char *input) {
         } else if (act == ACC) {
             printf("Accept\n");
             return 1;
-        } else if (act < 100) {                       /* shift */
+        } else if (act < 100) {                       
             printf("Shift %d\n", act);
             syms[++top] = a;
             states[top] = act;
             ip++;
-        } else {                                      /* reduce */
+        } else {                                      
             int p = act - 100;
             printf("Reduce by %s\n", prod_str[p]);
-            top -= prod_len[p];                       /* pop |RHS| (0 for epsilon) */
+            top -= prod_len[p];                       
             int t = states[top];
             int g = go_to[t][nt_index(prod_lhs[p])];
             if (g == -1) {
