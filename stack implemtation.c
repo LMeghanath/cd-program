@@ -1,53 +1,77 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_VARS 5
+#define MAX_FRAMES 10
 
 typedef struct {
-    char name[30];
-    int size;       // Size in bytes
-    int offset;     // Fixed memory offset
-    int value;      // Stored data
-} StaticSymbol;
+    char function_name[30];
+    int return_address;
+    int local_variable;
+} ActivationRecord;
 
-StaticSymbol staticTable[MAX_VARS];
-int varCount = 0;
-int currentOffset = 0;
+typedef struct {
+    ActivationRecord records[MAX_FRAMES];
+    int top;
+} Stack;
 
-void allocate_static(const char *name, int size, int value) {
-    if (varCount >= MAX_VARS) {
-        printf("Error: Static data area full!\n");
-        return;
-    }
-    strcpy(staticTable[varCount].name, name);
-    staticTable[varCount].size = size;
-    staticTable[varCount].offset = currentOffset;
-    staticTable[varCount].value = value;
-
-    currentOffset += size;
-    varCount++;
+void init_stack(Stack *s) {
+    s->top = -1;
 }
 
-void display_static_storage() {
-    printf("\n--- Static Storage Allocation Map ---\n");
-    printf("%-15s %-10s %-15s %-10s\n", "Variable", "Size(B)", "Offset Address", "Value");
-    for (int i = 0; i < varCount; i++) {
-        printf("%-15s %-10d 0x%04X          %-10d\n",
-               staticTable[i].name,
-               staticTable[i].size,
-               staticTable[i].offset,
-               staticTable[i].value);
+void push_frame(Stack *s, const char *func, int ret_addr, int local_var) {
+    if (s->top >= MAX_FRAMES - 1) {
+        printf("Stack Overflow!\n");
+        return;
     }
+    s->top++;
+    strcpy(s->records[s->top].function_name, func);
+    s->records[s->top].return_address = ret_addr;
+    s->records[s->top].local_variable = local_var;
+    printf("CALL: Pushed Activation Record for '%s' (Return Addr: %d, Local: %d)\n",
+           func, ret_addr, local_var);
+}
+
+void pop_frame(Stack *s) {
+    if (s->top < 0) {
+        printf("Stack Underflow!\n");
+        return;
+    }
+    printf("RETURN: Popped Activation Record for '%s'\n", s->records[s->top].function_name);
+    s->top--;
+}
+
+void display_stack(Stack *s) {
+    if (s->top == -1) {
+        printf("\nRuntime Stack is empty.\n");
+        return;
+    }
+    printf("\n--- Current Runtime Stack (Top to Bottom) ---\n");
+    for (int i = s->top; i >= 0; i--) {
+        printf("[Frame %d] Function: %-10s | RetAddr: %-4d | Local: %-4d\n",
+               i,
+               s->records[i].function_name,
+               s->records[i].return_address,
+               s->records[i].local_variable);
+    }
+    printf("---------------------------------------------\n");
 }
 
 int main() {
-    printf("Performing Static Allocation at Compile/Load Time...\n");
+    Stack runtime_stack;
+    init_stack(&runtime_stack);
 
-    // Allocation decisions are fixed before runtime execution
-    allocate_static("global_counter", 4, 100);
-    allocate_static("system_flag",    4, 1);
-    allocate_static("config_code",    4, 404);
+    push_frame(&runtime_stack, "main", 0, 50);
+    push_frame(&runtime_stack, "compute", 104, 10);
+    push_frame(&runtime_stack, "helper", 212, 5);
 
-    display_static_storage();
+    display_stack(&runtime_stack);
+
+    pop_frame(&runtime_stack);
+    display_stack(&runtime_stack);
+
+    pop_frame(&runtime_stack);
+    pop_frame(&runtime_stack);
+    display_stack(&runtime_stack);
+
     return 0;
 }
